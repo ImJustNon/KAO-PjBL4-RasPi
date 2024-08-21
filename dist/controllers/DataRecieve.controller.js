@@ -16,33 +16,50 @@ exports.DataRecieve = DataRecieve;
 const axios_1 = __importDefault(require("axios"));
 const index_1 = require("../index");
 const client_1 = require("@prisma/client");
+const config_1 = require("../config/config");
 const sendLine_1 = require("../utils/sendLine");
 const wait_1 = __importDefault(require("wait"));
 const prisma = new client_1.PrismaClient();
 let studentSignedOut = false;
 let timer;
+let alert = false;
 function startTimer() {
     timer = setTimeout(() => __awaiter(this, void 0, void 0, function* () {
         const checkRemainingStudent = yield prisma.student.findMany();
         if (checkRemainingStudent.length === 0) {
             console.log("- ✅ | No student left in the car");
             studentSignedOut = false;
+            clearTimeout(timer);
             return;
         }
         console.log(`- ⚠ | Found ${checkRemainingStudent.length} Remain in the car`);
         console.table(checkRemainingStudent);
-        (0, sendLine_1.sendLine)("HEE!!" + checkRemainingStudent[0].student_id);
-        const alertInterval = setInterval(() => __awaiter(this, void 0, void 0, function* () {
+        for (let i = 0; i < checkRemainingStudent.length; i++) {
+            yield (0, sendLine_1.sendLine)(`พบนักเรียนทีไม่ได้สเเกนบัตรออกรถ!!! ${checkRemainingStudent[i].student_id} (${checkRemainingStudent[i].student_nickname} ${checkRemainingStudent[i].student_firstname} ${checkRemainingStudent[i].student_lastname})`);
+        }
+        index_1.buzzer.writeSync(0);
+        alert = true;
+        while (alert) {
+            const checkRemaining = yield prisma.student.count();
+            if (checkRemaining === 0) {
+                stopAlert();
+                break;
+            }
             console.log(">>>> ALERTING <<<<");
-            index_1.buzzer.writeSync(0);
             index_1.alertLed.writeSync(0);
-            yield (0, wait_1.default)(10);
-            index_1.buzzer.writeSync(1);
+            yield (0, wait_1.default)(250);
             index_1.alertLed.writeSync(1);
-        }), 1000);
+            yield (0, wait_1.default)(100);
+        }
         studentSignedOut = false;
         return;
-    }), 10000);
+    }), config_1.config.timer);
+}
+function stopAlert() {
+    clearTimeout(timer);
+    alert = false;
+    studentSignedOut = false;
+    index_1.buzzer.writeSync(1);
 }
 function DataRecieve(data) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -50,6 +67,11 @@ function DataRecieve(data) {
         console.log(`- Recieved Data : ${data.toString()}`);
         index_1.yellowLed.writeSync(0);
         const scanResult = data.toString();
+        if (scanResult.replace("\r", "") === "RESET") {
+            stopAlert();
+            yield prisma.student.deleteMany();
+            return;
+        }
         if (isNaN(parseInt(scanResult))) {
             index_1.redLed.writeSync(0);
             setTimeout(() => {

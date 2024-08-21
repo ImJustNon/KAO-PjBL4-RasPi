@@ -11,4 +11,5 @@ export type Config = {
     gpio: Gpio;
     lineToken: string;
     apiPort: number;
+    timer: number;
 };

@@ -17,6 +17,7 @@ exports.config = {
         alertLedPin: 22,
     },
     lineToken: process.env.LINE_TOKEN || "",
-    apiPort: 8800
+    apiPort: 8800,
+    timer: 3 * 60 * 1000,
 };
 //# sourceMappingURL=config.js.map

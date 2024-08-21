@@ -10,31 +10,49 @@ const prisma: PrismaClient = new PrismaClient();
 
 let studentSignedOut: boolean = false;
 let timer: NodeJS.Timeout;
+let alert: boolean = false;
 function startTimer(){
     timer = setTimeout(async() =>{
         const checkRemainingStudent = await prisma.student.findMany();
         if(checkRemainingStudent.length === 0){
             console.log("- ✅ | No student left in the car");
             studentSignedOut = false;
+            clearTimeout(timer);
             return;
         }
         console.log(`- ⚠ | Found ${checkRemainingStudent.length} Remain in the car`);
         console.table(checkRemainingStudent);
         
         // alert zone
-        sendLine("HEE!!" + checkRemainingStudent[0].student_id);
-        const alertInterval: NodeJS.Timeout = setInterval(async() =>{
+        for(let i = 0; i < checkRemainingStudent.length; i++){
+            await sendLine(`พบนักเรียนทีไม่ได้สเเกนบัตรออกรถ!!! ${checkRemainingStudent[i].student_id} (${checkRemainingStudent[i].student_nickname} ${checkRemainingStudent[i].student_firstname} ${checkRemainingStudent[i].student_lastname})`);
+        }
+        
+        buzzer.writeSync(0);
+        alert = true;
+        while(alert){
+            const checkRemaining = await prisma.student.count();
+            if(checkRemaining === 0){
+                stopAlert();
+                break;
+            }
             console.log(">>>> ALERTING <<<<");
-            buzzer.writeSync(0);
             alertLed.writeSync(0);
-            await wait(10);
-            buzzer.writeSync(1);
+            await wait(250);
             alertLed.writeSync(1);
-        }, 1000);
+            await wait(100);
+        }
 
         studentSignedOut = false;
         return;
-    }, 10000);
+    }, config.timer);
+}
+
+function stopAlert(){
+    clearTimeout(timer);
+    alert = false;
+    studentSignedOut = false;
+    buzzer.writeSync(1);
 }
 
 export async function DataRecieve(data: Buffer): Promise<void> {
@@ -45,6 +63,14 @@ export async function DataRecieve(data: Buffer): Promise<void> {
 
 
     const scanResult: string = data.toString();
+
+    if(scanResult.replace("\r", "") === "RESET"){
+        stopAlert();
+        // reset database
+        await prisma.student.deleteMany();
+        return;
+    }
+
     if(isNaN(parseInt(scanResult))){
         redLed.writeSync(0);
         setTimeout(() => {

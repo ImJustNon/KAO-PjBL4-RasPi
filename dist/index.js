@@ -40,6 +40,8 @@ app.use((0, morgan_1.default)("dev"));
 exports.redLed.writeSync(1);
 exports.yellowLed.writeSync(1);
 exports.greenLed.writeSync(1);
+exports.buzzer.writeSync(1);
+exports.alertLed.writeSync(1);
 port.on('open', OpenPort_controller_1.openPort);
 port.on('data', DataRecieve_controller_1.DataRecieve);
 port.on('error', ReadError_controller_1.ReadError);

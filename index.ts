@@ -41,6 +41,8 @@ app.use(morgan("dev"));
 redLed.writeSync(1);
 yellowLed.writeSync(1);
 greenLed.writeSync(1);
+buzzer.writeSync(1);
+alertLed.writeSync(1);
 
 
 port.on('open', openPort);

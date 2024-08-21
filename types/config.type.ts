@@ -11,5 +11,6 @@ export type Config = {
     baudRate: number;
     gpio: Gpio;
     lineToken: string;
-    apiPort: number
+    apiPort: number;
+    timer: number;
 }
